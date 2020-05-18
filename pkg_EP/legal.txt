@@ -1,0 +1,5 @@
+https://eclipsephase.com/cclicense
+
+Eclipse Phase is produced by Posthuman Studios under a CC-BY-NA-SA 4.0 license. (https://creativecommons.org/licenses/by-nc-sa/4.0/)
+
+Please review their license page and the creative commons page before using any of this material in a new work.
