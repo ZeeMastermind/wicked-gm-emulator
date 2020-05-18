@@ -1,5 +1,11 @@
 https://eclipsephase.com/cclicense
 
-Eclipse Phase is produced by Posthuman Studios under a CC-BY-NA-SA 4.0 license. (https://creativecommons.org/licenses/by-nc-sa/4.0/)
+Eclipse Phase is produced by Posthuman Studios under a CC-BY-NC-SA 4.0 license. (https://creativecommons.org/licenses/by-nc-sa/4.0/)
 
 Please review their license page and the creative commons page before using any of this material in a new work.
+
+The Lunar-Lagrange Alliance names are based on wikipedia's lists of most popular given names and surnames, released under CC-BY-SA 3.0 (https://en.wikipedia.org/wiki/Wikipedia:Text_of_Creative_Commons_Attribution-ShareAlike_3.0_Unported_License)
+
+The Autonomist names are just ones I made up that sound cool. Though, I'm sure there's some other characters out there called "Void" or "Oberon." 
+
+Anything not in the public domain on these lists should be considered CC-BY-NC-SA. TBH, it's probably all Public Domain info, I am not a lawyer :/

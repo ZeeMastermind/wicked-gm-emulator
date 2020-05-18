@@ -1,10 +1,10 @@
-#Program by Allegra Van Rossum, released under CC-BY-NC-SA 4.0 (https://creativecommons.org/licenses/by-nc-sa/4.0/)
+#Program by Allegra Van Rossum, released under GNU General Public License version 3.0. Included Packages have their own licenses- please read "legal.txt" before using a package.
 #Please review the license before using the code in a new work. It is not the same as the GNU Public License: I use this one because a lot of the packages use creative commons material.
 #Keep in mind that the packages also have their own "legal.txt", with their own stipulations, if you use them.
 
 #The purpose of this program is to act as a 'pseudo-AI.' It is by no means a full AI, nor is it a substitute for a human GM.
 #However, the hope is that for 1-2 players, it may suffice as a way to game when no GM is available.
-#Packages for more game systems may eventually come. For now, Eclipse Phase is used since it's creative commons and I'm more comfortable with that.
+#Packages for more game systems may eventually come.
 
 #This project was also a way for me to learn Perl, hence why you'll see switches and other weird things going on
 
