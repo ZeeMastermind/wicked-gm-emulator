@@ -1,3 +1,5 @@
 The LLA contains the most common names from Earth: These are going to be more "normal", and are in a first name - last name format. First names are split into male and female, but there is a chance of a character having a fn that does not match their gender (Similar to the more modern convention, at least in the US, of a child being given a "feminized" version of a male name, or having a "neutral" name like Alex). An nb character will pick from either list at random.
 
 The AUTO contains autonomist names- presumably, an autonomist chooses their own name. Currently, an autonomist character is more likely to only have one name (That is, only a first name). There's a chance that an autonomist character will pick a name at random from LLA- and may even end up with a last name as their first and only name. Autonomist names don't have any particular gender associated with them.
+
+Jovian names are from wikipedia as well, and from US census data
