@@ -23,7 +23,7 @@ use String::Random qw(random_regex random_string);
 
 my $nb_err = 0;
 
-my_main();
+my_main(); #Go all the way to the bottom for this function
 
 
 
@@ -31,6 +31,124 @@ sub regexName
 {
 	my $eval_me = substr($_[0], 1);
 	return random_regex(${eval_me});
+}
+
+sub generatePersonality
+{
+	# 0: pkg_name, 1: NPC-0 or PC-1; 2: Culture-string;
+	# Should be passed in by generateCharacter. Otherwise, default is NPC, and Culture is selected at random.
+	
+	my @char_motivations; #motivations[0][n] is positive motivation, motivations[1][n] is negative motivation
+	my @char_cultures; #Unlikely, but possible (2% chance) to have more than one
+	my @char_factions; #Unlikely, but possible (5% chance) to have more than one. The first one is their "current" faction, others are past factions that may affect their motivations
+	
+	
+	my $pkg_name = $_[0];
+	
+	opendir(my $dh_1, "${pkg_name}\\motivations\\cultures") or die "Can't open /motivations/cultures!";
+	my @all_cultures = grep {/\.csv$/i && -f "${pkg_name}\\motivations\\cultures\\$_"} readdir $dh_1;
+	closedir($dh_1);
+	
+	opendir(my $dh_2, "${pkg_name}\\motivations\\factions") or die "Can't open /motivations/factions!";
+	my @all_factions = grep {/\.csv$/i && -f "${pkg_name}\\motivations\\factions\\$_"} readdir $dh_2;
+	closedir($dh_2);
+	
+	for my $i (0..(scalar @all_cultures - 1))
+	{
+		$all_cultures[$i] = substr($all_cultures[$i],0,-4);
+	}
+	for my $i (0..(scalar @all_factions - 1))
+	{
+		$all_factions[$i] = substr($all_factions[$i],0,-4);
+	}
+		
+	
+	my $char_type = 0;
+	#0 is NPC, 1 is PC. Avoids having PCs with a goal of "DESTROY THE UNIVERSE" or "EXTERMINATE HUMANITY."
+	#For evil or nonstandard PCs, simply remove "NPCONLY" from the .csv with the personalities you want to include.
+	
+	if (exists($_[1]))
+	{
+		$char_type = $_[1];
+	}
+	
+	if (exists($_[2]))
+	{
+		#check to make sure chosen culture is also in motivations/cultures. If it's not, select a culture at random
+		#this is used in cases where name cultures differ from motivation cultures
+		my %culture_check = map { $_ => 1 } @all_cultures;
+		if (exists($culture_check{$_[2]}) && int(rand(100)) < 95) #5% chance to get something else anyways. It should help a little for cultures that don't have name lists. 
+		{
+			push @char_cultures, $_[2];
+		}
+		else
+		{
+			push @char_cultures, @all_cultures[int(rand(scalar @all_cultures))];
+		}
+	}
+	else
+	{
+		#select a culture at random from motivations/cultures
+		push @char_cultures, @all_cultures[int(rand(scalar @all_cultures))];
+	}
+	
+	#chance to have additional cultures
+	
+	#grep used from here: https://stackoverflow.com/questions/2860226/how-can-i-check-if-a-perl-array-contains-a-particular-value
+	
+	while (int(rand(100)) < 2)
+	{
+		my $count = 0;
+		my $extra_culture = @all_cultures[int(rand(scalar @all_cultures))];
+		
+		my %cult_check = map { $_ => 1 } @char_cultures;
+		while (exists($cult_check{$extra_culture}) && $count < 5)
+		{
+			$extra_culture = @all_cultures[int(rand(scalar @all_cultures))];
+			$count++;
+		}
+		if ($count < 5)
+		{
+			push @char_cultures, $extra_culture;
+		}
+	}
+	
+	
+	#push faction
+	push @char_factions, @all_factions[int(rand(scalar @all_factions))];
+	
+	#chance to have additional factions
+	while (int(rand(100)) < 5)
+	{
+		my $count = 0;
+		my $extra_faction = @all_factions[int(rand(scalar @all_factions))];
+		
+		my %faction_check = map { $_ => 1 } @char_factions;
+		while (exists($faction_check{$extra_faction}) && $count < 5)
+		{
+			$extra_faction = @all_factions[int(rand(scalar @all_factions))];
+			$count++;
+		}
+		if ($count < 5)
+		{
+			push @char_factions, $extra_faction;
+		}
+	}
+	
+	#output
+	my $char_all_cults = '';
+	foreach (@char_cultures)
+	{
+		$char_all_cults = $char_all_cults . "," . $_;
+	}
+		
+	my $char_all_factions = '';
+	foreach (@char_factions)
+	{
+		$char_all_factions = $char_all_factions . "," . $_;
+	}
+	
+	return "," . (scalar @char_cultures) . "," . (scalar @char_factions) . $char_all_cults . $char_all_factions;
 }
 
 sub generateCharacter
@@ -322,6 +440,38 @@ sub generateCharacter
 	{
 		$firstname = regexName($firstname);
 	}
+	
+	if (length $firstname > 9 && int(rand(100)) < 2)
+	{
+		my $chopped = 3 + int(rand(4));
+		if (substr($firstname, (-1 * $chopped), 1) ne " ")
+		{
+			$firstname = substr($firstname, 0, (-1 * $chopped) + 1);
+		}
+		else
+		{
+			$firstname = substr($firstname, 0, (-1 * $chopped));
+		}
+		
+	}
+	
+	if (length $firstname > 8 && int(rand(100)) < 2) #randomly adds a diminutive. Chance that it just chops it.
+	{
+		if (substr($firstname, -4, 1) ne " ")
+		{
+			$firstname = substr($firstname, 0, -3) . random_regex('[aeiouy][a-z]?[aeiou]?');
+		}
+		else
+		{
+			$firstname = substr($firstname, 0, -4) . random_regex('[aeiouy][a-z]?[aeiou]?');
+		}
+		
+	}
+	
+	if (length $firstname < 10 && int(rand(100)) < 2) #randomly adds another human-readable name
+	{
+		$firstname = $firstname . "-" . random_regex('[BCDFGHJKLMNPRSTWVY][aeiou][bcdfghjklmnprstvwy][aeiou]?[bcdfghjklmnprstvwy]?[aeioun]?');		
+	}
 
 
 	$char_name = $firstname;
@@ -371,15 +521,15 @@ sub generateCharacter
 		}
 	}
 
-	if ($last_n == -1 && $extraname != 1 && int(rand(100)) > (40 + ((length $char_name) * 3))) 
+	if ($last_n == -1 && $extraname != 1 && int(rand(100)) > (30 + ((length $char_name) * 4))) 
 	{
-		return generateCharacter($pkg_name, $char_name);
+		return generateCharacter($pkg_name, $char_name, $_[2]);
 	}
 	elsif ($extraname != 1 && int(rand(100)) > (85 + (length $char_name))) #Much smaller chance of a "doubled" name, because otherwise this will get ridiculous
 	{
-		return generateCharacter($pkg_name, $char_name);
+		return generateCharacter($pkg_name, $char_name, $_[2]);
 	}
-	return "$char_name, $char_cult, $char_gender";
+	return "$char_name,$char_gender" . generatePersonality($pkg_name, $_[2], $char_cult);
 
 }
 
@@ -428,9 +578,11 @@ sub my_main
 
 	open (my $csv_out, ">", "characters.csv") or die "characters.csv: $!";
 
+	say $csv_out "Name, Gender, No. of Cultures, No. of factions, No. of Roles";
+
 	for (1..$char_number)
 	{
-		my $my_character = generateCharacter($pkg_name, "NOEXTRA");
+		my $my_character = generateCharacter($pkg_name, "NOEXTRA", 0);
 		print $my_character . "\n";
 		say $csv_out $my_character;
 		
