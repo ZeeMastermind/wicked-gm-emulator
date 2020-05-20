@@ -20,6 +20,8 @@ use Filter::Util::Call;
 use Text::Balanced;
 use Switch;
 use String::Random qw(random_regex random_string);
+use Array::Transpose; #QOL for reading
+
 
 my $nb_err = 0;
 
@@ -38,10 +40,10 @@ sub generatePersonality
 	# 0: pkg_name, 1: NPC-0 or PC-1; 2: Culture-string;
 	# Should be passed in by generateCharacter. Otherwise, default is NPC, and Culture is selected at random.
 	
-	my @char_motivations; #motivations[0][n] is positive motivation, motivations[1][n] is negative motivation
+	my @char_motivations;
 	my @char_cultures; #Unlikely, but possible (2% chance) to have more than one
 	my @char_factions; #Unlikely, but possible (5% chance) to have more than one. The first one is their "current" faction, others are past factions that may affect their motivations
-	
+	my @char_roles; #Unlikely, but possible (2% chance) to have more than one
 	
 	my $pkg_name = $_[0];
 	
@@ -53,6 +55,10 @@ sub generatePersonality
 	my @all_factions = grep {/\.csv$/i && -f "${pkg_name}\\motivations\\factions\\$_"} readdir $dh_2;
 	closedir($dh_2);
 	
+	opendir(my $dh_3, "${pkg_name}\\motivations\\roles") or die "Can't open /motivations/roles!";
+	my @all_roles = grep {/\.csv$/i && -f "${pkg_name}\\motivations\\roles\\$_"} readdir $dh_3;
+	closedir($dh_3);
+	
 	for my $i (0..(scalar @all_cultures - 1))
 	{
 		$all_cultures[$i] = substr($all_cultures[$i],0,-4);
@@ -60,6 +66,10 @@ sub generatePersonality
 	for my $i (0..(scalar @all_factions - 1))
 	{
 		$all_factions[$i] = substr($all_factions[$i],0,-4);
+	}
+	for my $i (0..(scalar @all_roles - 1))
+	{
+		$all_roles[$i] = substr($all_roles[$i],0,-4);
 	}
 		
 	
@@ -135,23 +145,214 @@ sub generatePersonality
 		}
 	}
 	
-	#output
-	my $char_all_cults = '';
-	foreach (@char_cultures)
+	#push role
+	push @char_roles, @all_roles[int(rand(scalar @all_roles))];
+	
+	#chance to have additional roles
+	while (int(rand(100)) < 2)
 	{
-		$char_all_cults = $char_all_cults . "," . $_;
-	}
+		my $count = 0;
+		my $extra_role = @all_roles[int(rand(scalar @all_roles))];
 		
-	my $char_all_factions = '';
-	foreach (@char_factions)
-	{
-		$char_all_factions = $char_all_factions . "," . $_;
+		my %role_check = map { $_ => 1 } @char_roles;
+		while (exists($role_check{$extra_role}) && $count < 5)
+		{
+			$extra_role = @all_roles[int(rand(scalar @all_roles))];
+			$count++;
+		}
+		if ($count < 5)
+		{
+			push @char_roles, $extra_role;
+		}
 	}
 	
-	return "," . (scalar @char_cultures) . "," . (scalar @char_factions) . $char_all_cults . $char_all_factions;
+	
+	#motivations
+	
+	my @pos_motivations;
+	my @neg_motivations;
+	#Load in potential motivations
+	for my $i (0..(scalar @char_factions - 1))
+	{
+		my $motivation_list = "${pkg_name}\\motivations\\factions\\$char_factions[$i].csv";
+		open (my $fh, '<', $motivation_list) or die "Error! Couldn\'t open ${motivation_list}!\n";
+		my $dummy = <$fh>; #skip header
+		while (my $line = <$fh>)
+		{
+			chomp $line;
+			my @fields = split(/,/, $line); #csv
+			
+			if (exists($fields[0]))
+			{
+				push @pos_motivations, $fields[0];
+			}
+			
+			if (exists($fields[1]))
+			{
+				push @neg_motivations, $fields[1];
+			}
+		}
+		
+		close ($fh);
+	}
+	
+	for my $i (0..(scalar @char_cultures - 1))
+	{
+		my $motivation_list = "${pkg_name}\\motivations\\cultures\\$char_cultures[$i].csv";
+		open (my $fh, '<', $motivation_list) or die "Error! Couldn\'t open ${motivation_list}!\n";
+		my $dummy = <$fh>; #skip header
+		while (my $line = <$fh>)
+		{
+			chomp $line;
+			my @fields = split(/,/, $line); #csv
+			
+			if (exists($fields[0]))
+			{
+				push @pos_motivations, $fields[0];
+			}
+			
+			if (exists($fields[1]))
+			{
+				push @neg_motivations, $fields[1];
+			}
+		}
+		
+		close ($fh);
+	}
+	
+	for my $i (0..(scalar @char_roles - 1))
+	{
+		my $motivation_list = "${pkg_name}\\motivations\\roles\\$char_roles[$i].csv";
+		open (my $fh, '<', $motivation_list) or die "Error! Couldn\'t open ${motivation_list}!\n";
+		my $dummy = <$fh>; #skip header
+		while (my $line = <$fh>)
+		{
+			chomp $line;
+			my @fields = split(/,/, $line); #csv
+			
+			if (exists($fields[0]))
+			{
+				push @pos_motivations, $fields[0];
+			}
+			
+			if (exists($fields[1]))
+			{
+				push @neg_motivations, $fields[1];
+			}
+		}
+		
+		close ($fh);
+	}
+	
+	#load generic
+	my $dummy_var = 0;
+	while($dummy_var ==0)
+	{
+		my $motivation_list = "${pkg_name}\\motivations\\generic.csv";
+		open (my $fh, '<', $motivation_list) or die "Error! Couldn\'t open ${motivation_list}!\n";
+		my $dummy = <$fh>; #skip header
+		while (my $line = <$fh>)
+		{
+			chomp $line;
+			my @fields = split(/,/, $line); #csv
+			
+			if (exists($fields[0]))
+			{
+				push @pos_motivations, $fields[0];
+			}
+			
+			if (exists($fields[1]))
+			{
+				push @neg_motivations, $fields[1];
+			}
+		}
+		
+		close ($fh);
+		$dummy_var = 1;
+	}
+		
+	
+	my $pos_count = 2 + int(rand(3));
+	my $neg_count = 1 + int(rand(2));
+	
+	if (scalar @pos_motivations == 0)
+	{
+		push @pos_motivations, "Apathy";
+	}
+	if (scalar @neg_motivations == 0)
+	{
+		push @neg_motivations, @pos_motivations[int(rand(scalar @pos_motivations))];
+	}	
+	
+	for my $i (1..$pos_count)
+	{
+		my $new_motivation = $pos_motivations[int(rand(scalar @pos_motivations))];
+		
+		my %mot_check = map { $_ => 1 } @char_motivations;
+		my $count = 0;
+		while (exists($mot_check{".+" . $new_motivation}) && $count < 5)
+		{
+			$new_motivation = @pos_motivations[int(rand(scalar @pos_motivations))];
+			$count++;
+		}
+		if ($count < 5)
+		{
+			push @char_motivations, ".+" . $new_motivation;
+		}
+				
+	}
+	
+	for my $i (1..$neg_count)
+	{
+		my $new_motivation = $neg_motivations[int(rand(scalar @neg_motivations))];
+		
+		my %mot_check = map { $_ => 1 } @char_motivations;
+		my $count = 0;
+		while (exists($mot_check{".-" . $new_motivation}) && $count < 5)
+		{
+			$new_motivation = @neg_motivations[int(rand(scalar @neg_motivations))];
+			$count++;
+		}
+		if ($count < 5)
+		{
+			push @char_motivations, ".-" . $new_motivation;
+		}
+				
+	}
+	
+	
+	
+	
+	
+	
+	#output
+	
+	my @return_out;
+	push @return_out, scalar @char_cultures;
+	push @return_out, scalar @char_factions;
+	push @return_out, scalar @char_roles;
+	push @return_out, scalar @char_motivations;
+	foreach (@char_cultures) 
+	{
+		push @return_out, $_;
+	}
+	foreach (@char_factions)
+	{
+		push @return_out, $_;
+	}
+	foreach (@char_roles)
+	{
+		push @return_out, $_;
+	}
+	foreach (@char_motivations)
+	{
+		push @return_out, $_;
+	}
+	
+	return @return_out;
 }
 
-sub generateCharacter
+sub generate_name
 {
 	my $pkg_name = $_[0];	
 	my $extraname = 0;
@@ -523,13 +724,32 @@ sub generateCharacter
 
 	if ($last_n == -1 && $extraname != 1 && int(rand(100)) > (30 + ((length $char_name) * 4))) 
 	{
-		return generateCharacter($pkg_name, $char_name, $_[2]);
+		return generate_name($pkg_name, $char_name, $_[2]);
 	}
 	elsif ($extraname != 1 && int(rand(100)) > (85 + (length $char_name))) #Much smaller chance of a "doubled" name, because otherwise this will get ridiculous
 	{
-		return generateCharacter($pkg_name, $char_name, $_[2]);
+		return generate_name($pkg_name, $char_name, $_[2]);
 	}
-	return "$char_name,$char_gender" . generatePersonality($pkg_name, $_[2], $char_cult);
+	
+	my @out_array = ($char_name,$char_gender,$char_cult);
+	return @out_array;
+}
+	
+sub generate_character #0: Package Name, 1: NPC or PC
+{
+	my @out_array;
+	
+	my @out_name = generate_name($_[0], "NOEXTRA", $_[1]);
+	push @out_array, $out_name[0];
+	push @out_array, $out_name[1];
+	
+	my @out_personality = generatePersonality($_[0], $_[1], $out_name[2]);
+	foreach (@out_personality)
+	{
+		push @out_array, $_;
+	}
+	
+	return @out_array;
 
 }
 
@@ -578,16 +798,53 @@ sub my_main
 
 	open (my $csv_out, ">", "characters.csv") or die "characters.csv: $!";
 
-	say $csv_out "Name, Gender, No. of Cultures, No. of factions, No. of Roles";
+	say $csv_out "Name,Gender,No. of Cultures,No. of Factions,No. of Roles,No. of Motivations";
 
-	for (1..$char_number)
+	my @all_characters;
+	my @headers = ("Name","Gender","No. of Cultures","No. of Factions","No. of Roles","No. of Motivations");
+	for (1..20)
 	{
-		my $my_character = generateCharacter($pkg_name, "NOEXTRA", 0);
-		print $my_character . "\n";
-		say $csv_out $my_character;
+		push @headers, "Data"; #To ensure data isn't lost when being transposed.
+	}
+	push @all_characters, \@headers; 
 		
+	for my $i (1..$char_number)
+	{
+		my @new_char = generate_character($pkg_name, 0);
+		push @all_characters, \@new_char;
+		print $new_char[0] . "\n";
+		my $csv_output = "";
+		foreach (@new_char)
+		{
+			$csv_output = $csv_output . $_ . ",";
+		}
+		say $csv_out $csv_output;
 	}
 	
 	close $csv_out;
-	print "Characters saved to characters.csv\n";
+	
+	
+	open (my $csv2_out, ">", "characters_readable.csv") or die "characters_readable.csv: $!";
+	@all_characters = transpose(\@all_characters);
+
+	for my $i (0..(scalar @all_characters - 1))
+	{
+		my $csv_output = "";
+		
+		for my $j (0..(scalar @{$all_characters[$i]} - 1))
+		{
+			if (defined $all_characters[$i][$j])
+			{
+				$csv_output = $csv_output . $all_characters[$i][$j] . ",";
+			}
+			else
+			{
+				$csv_output = $csv_output . " " . ",";
+			}
+		}
+		
+		say $csv2_out $csv_output;
+	}
+	close $csv2_out;
+	print "Characters saved to characters.csv, A human-readable version is in characters_readable.csv.\n";
 }
